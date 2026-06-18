@@ -825,6 +825,7 @@
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 2px; }
+
   </style>
 </head>
 <body>
@@ -1296,7 +1297,7 @@
       const items   = (t[s.key]||[]).filter(i=>!deleted.includes(i.id));
       const checks  = (c.checklists&&c.checklists[s.key])||{};
       const custom  = (c.customItems&&c.customItems[s.key])||[];
-      const tmplDone = items.length > 0 && items.every(i => checks[i.id]===true);
+      const tmplDone = items.length === 0 || items.every(i => checks[i.id]===true);
       const custDone = custom.every(i => i.checked);
       return tmplDone && custDone;
     });
