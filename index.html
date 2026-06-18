@@ -420,6 +420,15 @@
       border-radius: 4px;
       margin-left: 5px;
     }
+    .office-move-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 5px;
+      font-weight: 600;
+      color: #7ecfe4;
+      background: rgba(126,207,228,0.14);
+    }
     .assignee-badge {
       font-size: 10px;
       padding: 2px 6px;
@@ -925,6 +934,8 @@
         <select class="form-select" id="f-type">
           <option value="in">📥 입주</option>
           <option value="out">📤 퇴주</option>
+          <option value="office_in">🏢 오피스 이전 입주</option>
+          <option value="office_out">🏢 오피스 이전 퇴주</option>
         </select>
       </div>
       <div class="form-group">
@@ -1068,7 +1079,51 @@
     ],
   };
 
+  const OFFICE_MOVE_IN_DEFAULTS = {
+    s1: [
+      { id:'omi1_0', text:'계약조건 이메일 발송' },
+      { id:'omi1_1', text:'예치금 인상시, 예치금 입금 확인' },
+      { id:'omi1_2', text:'예치금 인상시, 예치금 리스트 입력' },
+    ],
+    s2: [
+      { id:'omi2_0', text:'계약서 작성 - 새라컨펌' },
+    ],
+    s3: [
+      { id:'omi3_0', text:'확장 시 WMS 영업리드 생성 - 투어 생성, 기존 기업매칭' },
+    ],
+    s4: [
+      { id:'omi4_0', text:'삼성시트 수정' },
+      { id:'omi4_1', text:'매출정산서 시트 수정' },
+      { id:'omi4_2', text:'엠포엠 클리닝 요청' },
+      { id:'omi4_3', text:'입퇴실체크리스트 기입' },
+    ],
+    s5: [
+      { id:'omi5_0', text:'신규 호실 입실체크리스트 작성' },
+      { id:'omi5_1', text:'신규 호실 입실체크리스트 날인' },
+      { id:'omi5_2', text:'입실체크리스트 스캔 및 팀즈업로드' },
+    ],
+  };
+
+  const OFFICE_MOVE_OUT_DEFAULTS = {
+    s1: [],
+    s2: [
+      { id:'omo2_0', text:'기존 호실 퇴실체크리스트 작성' },
+      { id:'omo2_1', text:'기존 호실 퇴실체크리스트 날인' },
+      { id:'omo2_2', text:'퇴실체크리스트 스캔 및 팀즈 업로드' },
+      { id:'omo2_3', text:'엠포엠 클리닝 요청' },
+    ],
+    s3: [],
+    s4: [
+      { id:'omo4_0', text:'호실 클리닝 확인' },
+    ],
+  };
+
   /* ─── 템플릿 함수 ─── */
+  function getCompanyTemplates(c) {
+    if (c && c.isOfficeMove) return (c.type||'in')==='out' ? OFFICE_MOVE_OUT_DEFAULTS : OFFICE_MOVE_IN_DEFAULTS;
+    return getTemplates(c ? (c.type||'in') : 'in');
+  }
+
   function getTemplates(type) {
     const key = type==='out' ? 's9_cl_out_templates' : 's9_cl_templates';
     const def = type==='out' ? OUT_CHECKLIST_DEFAULTS : IN_CHECKLIST_DEFAULTS;
@@ -1105,8 +1160,8 @@
   }
   function setStaff(s) { localStorage.setItem('s9_staff', JSON.stringify(s)); }
 
-  function initChecklists(type) {
-    const t = getTemplates(type);
+  function initChecklists(type, isOfficeMove) {
+    const t = isOfficeMove ? (type==='out' ? OFFICE_MOVE_OUT_DEFAULTS : OFFICE_MOVE_IN_DEFAULTS) : getTemplates(type);
     const cl = {};
     getStages(type).forEach(s => {
       cl[s.key] = {};
@@ -1148,8 +1203,7 @@
 
   /* 커스텀 항목 포함 전체 진행률 계산 (기업별 삭제 항목 제외) */
   function getProgress(c, stageKey, templates) {
-    const type    = c.type||'in';
-    const tmpl    = templates || getTemplates(type);
+    const tmpl    = templates || getCompanyTemplates(c);
     const deleted = (c.deletedItems&&c.deletedItems[stageKey])||[];
     const items   = (tmpl[stageKey]||[]).filter(i=>!deleted.includes(i.id));
     const checks  = (c.checklists&&c.checklists[stageKey])||{};
@@ -1160,9 +1214,8 @@
   }
 
   function isAllDone(c) {
-    const type = c.type||'in';
-    const t = getTemplates(type);
-    return getStages(type).every(s => {
+    const t = getCompanyTemplates(c);
+    return getStages(c.type||'in').every(s => {
       const deleted = (c.deletedItems&&c.deletedItems[s.key])||[];
       const items   = (t[s.key]||[]).filter(i=>!deleted.includes(i.id));
       const checks  = (c.checklists&&c.checklists[s.key])||{};
@@ -1339,12 +1392,11 @@
         <tbody><tr class="empty-row"><td colspan="${stages.length+3}">등록된 기업이 없습니다</td></tr></tbody>
       </table></div>`;
 
-    const templates = getTemplates(type);
     const staff = getStaff();
 
     const rows = list.map(c => {
       const stageCols = stages.map(s => {
-        const { done: doneCount, total } = getProgress(c, s.key, templates);
+        const { done: doneCount, total } = getProgress(c, s.key);
         const allDone = total > 0 && doneCount === total;
         const pct = total > 0 ? Math.round(doneCount/total*100) : 0;
         const fracColor = allDone ? 'var(--green)' : doneCount>0 ? (isOut?'var(--blue)':'var(--accent)') : 'var(--text-dim)';
@@ -1361,8 +1413,9 @@
       const aBadge = assigneeName && aColor
         ? `<span class="assignee-badge" style="color:${aColor.text};background:${aColor.bg};">👤 ${assigneeName}</span>`
         : '';
+      const omBadge = c.isOfficeMove ? `<span class="office-move-badge">🏢 오피스 이전</span>` : '';
       return `<tr>
-        <td class="company-name">${n}${r?`<span class="room-badge">${r}</span>`:''}${aBadge}</td>
+        <td class="company-name">${n}${r?`<span class="room-badge">${r}</span>`:''}${omBadge}${aBadge}</td>
         ${stageCols}
         <td><div class="memo-text" title="${memo}">${memo||'—'}</div></td>
         <td><div class="action-btns">
@@ -1404,7 +1457,7 @@
     const data = getData();
     const company = data.find(c=>c.id===clCompanyId);
     if (!company) return;
-    const templates = getTemplates(clType);
+    const templates = getCompanyTemplates(company);
     const allItems = templates[clStageKey]||[];
     const deleted  = (company.deletedItems&&company.deletedItems[clStageKey])||[];
     const items    = allItems.filter(i=>!deleted.includes(i.id));
@@ -1751,7 +1804,7 @@
     if (!company) return;
     let text;
     if (itemType==='template') {
-      const item = (getTemplates(clType)[clStageKey]||[]).find(i=>i.id===itemId);
+      const item = (getCompanyTemplates(company)[clStageKey]||[]).find(i=>i.id===itemId);
       text = item ? item.text : itemId;
     } else {
       const item = ((company.customItems&&company.customItems[clStageKey])||[]).find(i=>i.id===itemId);
@@ -1794,7 +1847,7 @@
     document.getElementById('modal-title').textContent='기업 수정';
     document.getElementById('f-name').value=c.name;
     document.getElementById('f-room').value=c.room||'';
-    document.getElementById('f-type').value=c.type;
+    document.getElementById('f-type').value=c.isOfficeMove ? 'office_'+c.type : c.type;
     document.getElementById('f-month').value=c.month;
     document.getElementById('f-memo').value=c.memo||'';
     populateAssigneeSelect(c.assigneeId||'');
@@ -1804,23 +1857,25 @@
   function handleOverlayClick(e) { if (e.target===document.getElementById('modal')) closeModal(); }
 
   function saveCompany() {
-    const name       = document.getElementById('f-name').value.trim();
-    const room       = document.getElementById('f-room').value.trim();
-    const type       = document.getElementById('f-type').value;
-    const month      = document.getElementById('f-month').value;
-    const memo       = document.getElementById('f-memo').value.trim();
-    const assigneeId = document.getElementById('f-assignee').value;
+    const name        = document.getElementById('f-name').value.trim();
+    const room        = document.getElementById('f-room').value.trim();
+    const typeVal     = document.getElementById('f-type').value;
+    const isOfficeMove = typeVal.startsWith('office_');
+    const type        = isOfficeMove ? typeVal.replace('office_', '') : typeVal;
+    const month       = document.getElementById('f-month').value;
+    const memo        = document.getElementById('f-memo').value.trim();
+    const assigneeId  = document.getElementById('f-assignee').value;
     if (!name)  { alert('기업명을 입력해 주세요.'); return; }
     if (!month) { alert('예정 월을 선택해 주세요.'); return; }
     const data=getData();
     if (editingId) {
       const c=data.find(x=>x.id===editingId);
       if (c) {
-        Object.assign(c,{name,room,type,month,memo,assigneeId});
-        if (!c.checklists) c.checklists = initChecklists(type);
+        Object.assign(c,{name,room,type,month,memo,assigneeId,isOfficeMove});
+        if (!c.checklists) c.checklists = initChecklists(type, isOfficeMove);
       }
     } else {
-      data.push({id:genId(), name, room, type, month, memo, assigneeId, checklists:initChecklists(type)});
+      data.push({id:genId(), name, room, type, month, memo, assigneeId, isOfficeMove, checklists:initChecklists(type, isOfficeMove)});
     }
     setData(data); closeModal(); render();
   }
@@ -1842,13 +1897,12 @@
     companies.forEach(c => {
       const type      = c.type||'in';
       const stages    = getStages(type);
-      const templates = getTemplates(type);
 
       const stageCols = [];
       let totalDone = 0, totalItems = 0;
 
       stages.forEach(s => {
-        const { done, total } = getProgress(c, s.key, templates);
+        const { done, total } = getProgress(c, s.key);
         stageCols.push(total > 0 ? `${s.label} (${done}/${total})` : s.label);
         totalDone  += done;
         totalItems += total;
@@ -1861,7 +1915,7 @@
       rows.push([
         c.name,
         c.room||'',
-        type==='in' ? '입주' : '퇴주',
+        c.isOfficeMove ? (type==='in' ? '오피스이전 입주' : '오피스이전 퇴주') : (type==='in' ? '입주' : '퇴주'),
         c.month,
         ...stageCols,
         pct,
