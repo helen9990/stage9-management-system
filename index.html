@@ -996,8 +996,72 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <script>
   const PASSWORD = 'stage9990!';
+
+  /* ─── Firebase 초기화 ─── */
+  firebase.initializeApp({
+    apiKey: "AIzaSyCzjuILR-y1miDFRVJmRfX1aYxgmv2AyM0",
+    authDomain: "stage9-management-system.firebaseapp.com",
+    databaseURL: "https://stage9-management-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "stage9-management-system",
+    storageBucket: "stage9-management-system.firebasestorage.app",
+    messagingSenderId: "659754645346",
+    appId: "1:659754645346:web:d5103b5519d6957f265e3b"
+  });
+  const _db = firebase.database();
+
+  let _fbData      = null;
+  let _fbStaff     = null;
+  let _fbTemplates = { in: null, out: null };
+  let _fbListening = false;
+
+  function startFirebaseSync() {
+    _fbListening = true;
+
+    _db.ref('s9_companies').on('value', snap => {
+      const val = snap.val();
+      _fbData = val ? (Array.isArray(val) ? val : Object.values(val).filter(Boolean)) : [];
+      if (document.getElementById('main-screen').style.display !== 'none') {
+        renderMonths(_fbData);
+        document.getElementById('summary-area').innerHTML = renderSummary(_fbData, getMonths()[1]);
+      }
+    });
+
+    _db.ref('s9_staff').on('value', snap => {
+      _fbStaff = snap.val() || null;
+      if (document.getElementById('main-screen').style.display !== 'none') populateAssigneeFilter();
+    });
+
+    _db.ref('s9_templates').on('value', snap => {
+      const val = snap.val() || {};
+      _fbTemplates.in  = val.in  || null;
+      _fbTemplates.out = val.out || null;
+    });
+
+    /* localStorage → Firebase 최초 마이그레이션 */
+    _db.ref('s9_companies').once('value').then(snap => {
+      if (!snap.val()) {
+        try { const d = JSON.parse(localStorage.getItem('s9_companies')||'[]'); if (d.length) _db.ref('s9_companies').set(d); } catch {}
+      }
+    });
+    _db.ref('s9_staff').once('value').then(snap => {
+      if (!snap.val()) {
+        try { const d = JSON.parse(localStorage.getItem('s9_staff')||'null'); if (d) _db.ref('s9_staff').set(d); } catch {}
+      }
+    });
+    _db.ref('s9_templates').once('value').then(snap => {
+      if (!snap.val()) {
+        try {
+          const inT  = JSON.parse(localStorage.getItem('s9_cl_templates')||'null');
+          const outT = JSON.parse(localStorage.getItem('s9_cl_out_templates')||'null');
+          if (inT || outT) _db.ref('s9_templates').set({ in: inT||null, out: outT||null });
+        } catch {}
+      }
+    });
+  }
 
   const IN_STAGES = [
     { key:'s1', label:'계약확정' },
@@ -1125,15 +1189,17 @@
   }
 
   function getTemplates(type) {
-    const key = type==='out' ? 's9_cl_out_templates' : 's9_cl_templates';
     const def = type==='out' ? OUT_CHECKLIST_DEFAULTS : IN_CHECKLIST_DEFAULTS;
+    if (_fbTemplates[type] != null) return _fbTemplates[type];
+    const key = type==='out' ? 's9_cl_out_templates' : 's9_cl_templates';
     try {
       const s = JSON.parse(localStorage.getItem(key)||'null');
       return s || JSON.parse(JSON.stringify(def));
     } catch { return JSON.parse(JSON.stringify(def)); }
   }
   function setTemplates(type, t) {
-    localStorage.setItem(type==='out'?'s9_cl_out_templates':'s9_cl_templates', JSON.stringify(t));
+    if (_fbListening) { _fbTemplates[type] = t; _db.ref('s9_templates/'+type).set(t); }
+    else { localStorage.setItem(type==='out'?'s9_cl_out_templates':'s9_cl_templates', JSON.stringify(t)); }
   }
   function getStages(type) { return type==='out' ? OUT_STAGES : IN_STAGES; }
 
@@ -1155,10 +1221,15 @@
     return STAFF_COLORS[idx % STAFF_COLORS.length];
   }
   function getStaff() {
+    if (_fbStaff !== null) return _fbStaff;
     try { return JSON.parse(localStorage.getItem('s9_staff')||'null') || JSON.parse(JSON.stringify(STAFF_DEFAULTS)); }
     catch { return JSON.parse(JSON.stringify(STAFF_DEFAULTS)); }
   }
-  function setStaff(s) { localStorage.setItem('s9_staff', JSON.stringify(s)); }
+  function setStaff(s) {
+    _fbStaff = s;
+    if (_fbListening) { _db.ref('s9_staff').set(s); }
+    else { localStorage.setItem('s9_staff', JSON.stringify(s)); }
+  }
 
   function initChecklists(type, isOfficeMove) {
     const t = isOfficeMove ? (type==='out' ? OFFICE_MOVE_OUT_DEFAULTS : OFFICE_MOVE_IN_DEFAULTS) : getTemplates(type);
@@ -1196,9 +1267,14 @@
   function formatMonth(ym) { const [y,m]=ym.split('-'); return `${y}년 ${parseInt(m)}월`; }
 
   function getData() {
+    if (_fbData !== null) return _fbData;
     try { return JSON.parse(localStorage.getItem('s9_companies')||'[]'); } catch { return []; }
   }
-  function setData(d) { localStorage.setItem('s9_companies', JSON.stringify(d)); }
+  function setData(d) {
+    _fbData = d;
+    if (_fbListening) { _db.ref('s9_companies').set(d); }
+    else { localStorage.setItem('s9_companies', JSON.stringify(d)); }
+  }
   function genId()    { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 
   /* 커스텀 항목 포함 전체 진행률 계산 (기업별 삭제 항목 제외) */
@@ -1229,6 +1305,7 @@
   /* ─── Auth ─── */
   function doLogin() {
     if (document.getElementById('pw-input').value === PASSWORD) {
+      startFirebaseSync();
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('main-screen').style.display  = 'block';
       initControls();
