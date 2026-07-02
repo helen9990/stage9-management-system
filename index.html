@@ -814,6 +814,7 @@
 
     /* 메뉴 수정 - 담당자 탭 */
     .menu-tab.staff-tab.active { background: rgba(56,161,105,0.12); border-color: rgba(56,161,105,0.4); color: var(--green); }
+    .menu-tab.office-in-tab.active, .menu-tab.office-out-tab.active { background: rgba(126,207,228,0.12); border-color: rgba(126,207,228,0.4); color: #7ecfe4; }
     .staff-item-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 
     @media (max-width: 760px) {
@@ -825,7 +826,6 @@
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--bg-3); border-radius: 2px; }
-
   </style>
 </head>
 <body>
@@ -898,9 +898,9 @@
           <span class="shortcut-icon">✍️</span>
           <span class="shortcut-label">모두싸인</span>
         </a>
-        <a class="shortcut-item" href="http://members.iparking.co.kr/html/home.html#!" target="_blank" rel="noopener" title="주차등록">
-          <span class="shortcut-icon">🚗</span>
-          <span class="shortcut-label">주차등록</span>
+        <a class="shortcut-item" href="https://sungmiji.github.io/Check-in-Checklist/" target="_blank" rel="noopener" title="입퇴실 체크리스트">
+          <span class="shortcut-icon">📋</span>
+          <span class="shortcut-label">입퇴실</span>
         </a>
         <a class="shortcut-item" href="https://stage9.daouoffice.com/home" target="_blank" rel="noopener" title="다우오피스">
           <span class="shortcut-icon">🏢</span>
@@ -985,9 +985,11 @@
   <div class="modal" style="padding:30px;width:640px;">
     <div class="modal-title">메뉴 수정</div>
     <div class="menu-tabs">
-      <button class="menu-tab in-tab active" id="tab-in"    onclick="switchMenuTab('in')">📥 입주</button>
-      <button class="menu-tab out-tab"       id="tab-out"   onclick="switchMenuTab('out')">📤 퇴주</button>
-      <button class="menu-tab staff-tab"     id="tab-staff" onclick="switchMenuTab('staff')">👥 담당자</button>
+      <button class="menu-tab in-tab active"   id="tab-in"         onclick="switchMenuTab('in')">📥 입주</button>
+      <button class="menu-tab out-tab"         id="tab-out"        onclick="switchMenuTab('out')">📤 퇴주</button>
+      <button class="menu-tab office-in-tab"   id="tab-office-in"  onclick="switchMenuTab('office_in')">🏢 이전입주</button>
+      <button class="menu-tab office-out-tab"  id="tab-office-out" onclick="switchMenuTab('office_out')">🏢 이전퇴주</button>
+      <button class="menu-tab staff-tab"       id="tab-staff"      onclick="switchMenuTab('staff')">👥 담당자</button>
     </div>
     <div class="menu-modal-inner" id="menu-edit-content"></div>
     <div class="modal-actions" style="border-top:1px solid var(--border);padding-top:16px;margin-top:8px;">
@@ -1016,7 +1018,7 @@
 
   let _fbData      = null;
   let _fbStaff     = null;
-  let _fbTemplates = { in: null, out: null };
+  let _fbTemplates = { in: null, out: null, office_in: null, office_out: null };
   let _fbListening = false;
 
   function startFirebaseSync() {
@@ -1038,8 +1040,10 @@
 
     _db.ref('s9_templates').on('value', snap => {
       const val = snap.val() || {};
-      _fbTemplates.in  = val.in  || null;
-      _fbTemplates.out = val.out || null;
+      _fbTemplates.in         = val.in         || null;
+      _fbTemplates.out        = val.out        || null;
+      _fbTemplates.office_in  = val.office_in  || null;
+      _fbTemplates.office_out = val.office_out || null;
     });
 
     /* localStorage → Firebase 최초 마이그레이션 */
@@ -1185,24 +1189,35 @@
 
   /* ─── 템플릿 함수 ─── */
   function getCompanyTemplates(c) {
-    if (c && c.isOfficeMove) return (c.type||'in')==='out' ? OFFICE_MOVE_OUT_DEFAULTS : OFFICE_MOVE_IN_DEFAULTS;
+    if (c && c.isOfficeMove) return getTemplates((c.type||'in')==='out' ? 'office_out' : 'office_in');
     return getTemplates(c ? (c.type||'in') : 'in');
   }
 
   function getTemplates(type) {
-    const def = type==='out' ? OUT_CHECKLIST_DEFAULTS : IN_CHECKLIST_DEFAULTS;
+    const defMap = {
+      in: IN_CHECKLIST_DEFAULTS, out: OUT_CHECKLIST_DEFAULTS,
+      office_in: OFFICE_MOVE_IN_DEFAULTS, office_out: OFFICE_MOVE_OUT_DEFAULTS,
+    };
+    const lsKeyMap = {
+      in: 's9_cl_templates', out: 's9_cl_out_templates',
+      office_in: 's9_cl_office_in_templates', office_out: 's9_cl_office_out_templates',
+    };
+    const def = defMap[type] || IN_CHECKLIST_DEFAULTS;
     if (_fbTemplates[type] != null) return _fbTemplates[type];
-    const key = type==='out' ? 's9_cl_out_templates' : 's9_cl_templates';
     try {
-      const s = JSON.parse(localStorage.getItem(key)||'null');
+      const s = JSON.parse(localStorage.getItem(lsKeyMap[type]||'null')||'null');
       return s || JSON.parse(JSON.stringify(def));
     } catch { return JSON.parse(JSON.stringify(def)); }
   }
   function setTemplates(type, t) {
+    const lsKeyMap = {
+      in: 's9_cl_templates', out: 's9_cl_out_templates',
+      office_in: 's9_cl_office_in_templates', office_out: 's9_cl_office_out_templates',
+    };
     if (_fbListening) { _fbTemplates[type] = t; _db.ref('s9_templates/'+type).set(t); }
-    else { localStorage.setItem(type==='out'?'s9_cl_out_templates':'s9_cl_templates', JSON.stringify(t)); }
+    else { localStorage.setItem(lsKeyMap[type]||type, JSON.stringify(t)); }
   }
-  function getStages(type) { return type==='out' ? OUT_STAGES : IN_STAGES; }
+  function getStages(type) { return (type==='out'||type==='office_out') ? OUT_STAGES : IN_STAGES; }
 
   /* ─── 담당자 ─── */
   const STAFF_DEFAULTS = [
@@ -1245,11 +1260,11 @@
   /* ─── 앱 상태 ─── */
   let editingId       = null;
   let editingStaff    = null;
-  const collapseState = {};
+  let collapseState = (()=>{ try{ return JSON.parse(localStorage.getItem('s9_collapse')||'{}'); }catch{ return {}; } })();
   let selectedMonth      = todayYM();
   let searchQuery        = '';
   let filterAssignee     = '';
-  const typeCollapseState = {};
+  let typeCollapseState = (()=>{ try{ return JSON.parse(localStorage.getItem('s9_type_collapse')||'{}'); }catch{ return {}; } })();
 
   function todayYM() {
     const d = new Date();
@@ -1297,7 +1312,7 @@
       const items   = (t[s.key]||[]).filter(i=>!deleted.includes(i.id));
       const checks  = (c.checklists&&c.checklists[s.key])||{};
       const custom  = (c.customItems&&c.customItems[s.key])||[];
-      const tmplDone = items.length === 0 || items.every(i => checks[i.id]===true);
+      const tmplDone = items.every(i => checks[i.id]===true);
       const custDone = custom.every(i => i.checked);
       return tmplDone && custDone;
     });
@@ -1349,8 +1364,8 @@
   }
   function goToMonth(ym) { selectedMonth=ym; render(); }
   function goToToday()   { selectedMonth=todayYM(); render(); }
-  function toggleCollapse(ym) { collapseState[ym]=!collapseState[ym]; renderMonths(); }
-  function toggleTypeCollapse(ym, type) { typeCollapseState[ym+'_'+type]=!typeCollapseState[ym+'_'+type]; renderMonths(); }
+  function toggleCollapse(ym) { collapseState[ym]=!collapseState[ym]; localStorage.setItem('s9_collapse',JSON.stringify(collapseState)); renderMonths(); }
+  function toggleTypeCollapse(ym, type) { typeCollapseState[ym+'_'+type]=!typeCollapseState[ym+'_'+type]; localStorage.setItem('s9_type_collapse',JSON.stringify(typeCollapseState)); renderMonths(); }
 
   /* ─── Render ─── */
   function populateAssigneeFilter() {
@@ -1492,8 +1507,9 @@
         ? `<span class="assignee-badge" style="color:${aColor.text};background:${aColor.bg};">👤 ${assigneeName}</span>`
         : '';
       const omBadge = c.isOfficeMove ? `<span class="office-move-badge">🏢 오피스 이전</span>` : '';
+      const allDoneCompany = isAllDone(c);
       return `<tr>
-        <td class="company-name">${n}${r?`<span class="room-badge">${r}</span>`:''}${omBadge}${aBadge}</td>
+        <td class="company-name" style="${allDoneCompany?'color:var(--text-dim);':''}">${n}${r?`<span class="room-badge">${r}</span>`:''}${omBadge}${aBadge}</td>
         ${stageCols}
         <td><div class="memo-text" title="${memo}">${memo||'—'}</div></td>
         <td><div class="action-btns">
@@ -1671,8 +1687,10 @@
 
   function openMenuEdit() {
     editingTemplates = {
-      in:  JSON.parse(JSON.stringify(getTemplates('in'))),
-      out: JSON.parse(JSON.stringify(getTemplates('out'))),
+      in:         JSON.parse(JSON.stringify(getTemplates('in'))),
+      out:        JSON.parse(JSON.stringify(getTemplates('out'))),
+      office_in:  JSON.parse(JSON.stringify(getTemplates('office_in'))),
+      office_out: JSON.parse(JSON.stringify(getTemplates('office_out'))),
     };
     editingStaff = JSON.parse(JSON.stringify(getStaff()));
     activeMenuTab = 'in';
@@ -1689,16 +1707,18 @@
   }
 
   function updateTabUI() {
-    document.getElementById('tab-in').className    = 'menu-tab in-tab'    + (activeMenuTab==='in'?' active':'');
-    document.getElementById('tab-out').className   = 'menu-tab out-tab'   + (activeMenuTab==='out'?' active':'');
-    document.getElementById('tab-staff').className = 'menu-tab staff-tab' + (activeMenuTab==='staff'?' active':'');
+    document.getElementById('tab-in').className         = 'menu-tab in-tab'         + (activeMenuTab==='in'?' active':'');
+    document.getElementById('tab-out').className        = 'menu-tab out-tab'        + (activeMenuTab==='out'?' active':'');
+    document.getElementById('tab-office-in').className  = 'menu-tab office-in-tab'  + (activeMenuTab==='office_in'?' active':'');
+    document.getElementById('tab-office-out').className = 'menu-tab office-out-tab' + (activeMenuTab==='office_out'?' active':'');
+    document.getElementById('tab-staff').className      = 'menu-tab staff-tab'      + (activeMenuTab==='staff'?' active':'');
   }
 
   function renderMenuEditContent() {
     if (activeMenuTab === 'staff') { renderStaffContent(); return; }
     const stages = getStages(activeMenuTab);
     const tmpl   = editingTemplates[activeMenuTab];
-    const isOut  = activeMenuTab==='out';
+    const isOut  = activeMenuTab==='out' || activeMenuTab==='office_out';
     const html = stages.map(stage => {
       const items = tmpl[stage.key]||[];
       const rows = items.map((item, idx) => `
@@ -1756,7 +1776,7 @@
 
   function saveMenuEdit() {
     if (activeMenuTab === 'staff') syncStaffInputs(); else syncTemplateInputs();
-    ['in','out'].forEach(t => {
+    ['in','out','office_in','office_out'].forEach(t => {
       getStages(t).forEach(s => {
         if (editingTemplates[t][s.key]) {
           editingTemplates[t][s.key] = editingTemplates[t][s.key].filter(item=>item.text.trim());
@@ -1949,6 +1969,11 @@
     if (editingId) {
       const c=data.find(x=>x.id===editingId);
       if (c) {
+        const prevTypeVal = c.isOfficeMove ? 'office_' + c.type : c.type;
+        if (prevTypeVal !== typeVal) {
+          alert('구분 변경은 불가합니다.\n삭제 후 다시 생성해 주세요.');
+          return;
+        }
         Object.assign(c,{name,room,type,month,memo,assigneeId,isOfficeMove});
         if (!c.checklists) c.checklists = initChecklists(type, isOfficeMove);
       }
