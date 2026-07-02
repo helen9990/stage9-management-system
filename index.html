@@ -1288,12 +1288,31 @@
     if (_fbData !== null) return _fbData;
     try { return JSON.parse(localStorage.getItem('s9_companies')||'[]'); } catch { return []; }
   }
+  function showSaveToast(ok) {
+    let t = document.getElementById('_save_toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = '_save_toast';
+      t.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none;font-family:inherit;';
+      document.body.appendChild(t);
+    }
+    t.textContent = ok ? '✓ 저장됨' : '⚠ 저장 실패';
+    t.style.background = ok ? '#38a169' : '#e53e3e';
+    t.style.color = 'white';
+    t.style.opacity = '1';
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => { t.style.opacity = '0'; }, ok ? 1500 : 4000);
+  }
+
   function setData(d) {
     _fbData = d;
     if (_fbListening) {
-      _db.ref('s9_companies').set(d).catch(err => {
-        alert('⚠️ 저장 실패\n' + (err.code || err.message) + '\n\nFirebase 보안 규칙을 확인해 주세요.');
-      });
+      _db.ref('s9_companies').set(d)
+        .then(() => showSaveToast(true))
+        .catch(err => {
+          showSaveToast(false);
+          alert('⚠️ 저장 실패\n' + (err.code || err.message) + '\n\nFirebase 보안 규칙을 확인해 주세요.');
+        });
     }
     else { localStorage.setItem('s9_companies', JSON.stringify(d)); }
   }
