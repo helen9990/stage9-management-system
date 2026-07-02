@@ -876,6 +876,7 @@
       </div>
       <div class="panel-div"></div>
       <button class="menu-edit-btn" onclick="openMenuEdit()">⚙ 메뉴 수정</button>
+      <button class="menu-edit-btn" onclick="manualRefresh()" id="refresh-btn" style="border-color:rgba(108,142,255,0.4);color:var(--blue);">↻ 새로고침</button>
       <button class="csv-btn" onclick="exportCSV()">⬇ CSV 내보내기</button>
 
       <div class="panel-div"></div>
@@ -1016,27 +1017,30 @@
   });
   const _db = firebase.database();
 
-  let _fbData      = null;
-  let _fbStaff     = null;
-  let _fbTemplates = { in: null, out: null, office_in: null, office_out: null };
-  let _fbListening = false;
+  let _fbData           = null;
+  let _fbStaff          = null;
+  let _fbTemplates      = { in: null, out: null, office_in: null, office_out: null };
+  let _fbListening      = false;
+  let _fbTplLoaded      = false;
 
   function startFirebaseSync() {
+    if (_fbListening) return;
     _fbListening = true;
 
     _db.ref('s9_companies').on('value', snap => {
       const val = snap.val();
       _fbData = val ? (Array.isArray(val) ? val : Object.values(val).filter(Boolean)) : [];
-      if (document.getElementById('main-screen').style.display !== 'none') {
+      if (_fbTplLoaded) {
         renderMonths(_fbData);
         document.getElementById('summary-area').innerHTML = renderSummary(_fbData, getMonths()[1]);
+        populateAssigneeFilter();
         if (clCompanyId) refreshClItems();
       }
     });
 
     _db.ref('s9_staff').on('value', snap => {
       _fbStaff = snap.val() || null;
-      if (document.getElementById('main-screen').style.display !== 'none') populateAssigneeFilter();
+      populateAssigneeFilter();
     });
 
     _db.ref('s9_templates').on('value', snap => {
@@ -1045,29 +1049,15 @@
       _fbTemplates.out        = val.out        || null;
       _fbTemplates.office_in  = val.office_in  || null;
       _fbTemplates.office_out = val.office_out || null;
+      _fbTplLoaded = true;
+      if (_fbData && _fbData.length > 0) {
+        renderMonths(_fbData);
+        document.getElementById('summary-area').innerHTML = renderSummary(_fbData, getMonths()[1]);
+        populateAssigneeFilter();
+      }
       if (clCompanyId) refreshClItems();
     });
 
-    /* localStorage → Firebase 최초 마이그레이션 */
-    _db.ref('s9_companies').once('value').then(snap => {
-      if (!snap.val()) {
-        try { const d = JSON.parse(localStorage.getItem('s9_companies')||'[]'); if (d.length) _db.ref('s9_companies').set(d); } catch {}
-      }
-    });
-    _db.ref('s9_staff').once('value').then(snap => {
-      if (!snap.val()) {
-        try { const d = JSON.parse(localStorage.getItem('s9_staff')||'null'); if (d) _db.ref('s9_staff').set(d); } catch {}
-      }
-    });
-    _db.ref('s9_templates').once('value').then(snap => {
-      if (!snap.val()) {
-        try {
-          const inT  = JSON.parse(localStorage.getItem('s9_cl_templates')||'null');
-          const outT = JSON.parse(localStorage.getItem('s9_cl_out_templates')||'null');
-          if (inT || outT) _db.ref('s9_templates').set({ in: inT||null, out: outT||null });
-        } catch {}
-      }
-    });
   }
 
   const IN_STAGES = [
@@ -1346,15 +1336,73 @@
   /* ─── Auth ─── */
   function doLogin() {
     if (document.getElementById('pw-input').value === PASSWORD) {
-      startFirebaseSync();
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('main-screen').style.display  = 'block';
       initControls();
-      render();
+      document.getElementById('month-nav-label').textContent = formatMonth(selectedMonth);
+      document.getElementById('month-picker').value = selectedMonth;
+      if (_fbData !== null) {
+        render();
+        if (!_fbListening) startFirebaseSync();
+      } else {
+        document.getElementById('months-area').innerHTML =
+          '<div style="text-align:center;color:var(--text-muted);padding:60px 0;font-size:13px;">⏳ 데이터 불러오는 중...</div>';
+        document.getElementById('summary-area').innerHTML = '';
+        if (!_fbListening) startFirebaseSync();
+        Promise.all([
+          _db.ref('s9_companies').once('value'),
+          _db.ref('s9_templates').once('value'),
+          _db.ref('s9_staff').once('value')
+        ]).then(([cSnap, tSnap, sSnap]) => {
+          const tVal = tSnap.val() || {};
+          _fbTemplates.in         = tVal.in         || null;
+          _fbTemplates.out        = tVal.out        || null;
+          _fbTemplates.office_in  = tVal.office_in  || null;
+          _fbTemplates.office_out = tVal.office_out || null;
+          _fbTplLoaded = true;
+          _fbStaff = sSnap.val() || null;
+          const val = cSnap.val();
+          _fbData = val ? (Array.isArray(val) ? val : Object.values(val).filter(Boolean)) : [];
+          renderMonths(_fbData);
+          document.getElementById('summary-area').innerHTML = renderSummary(_fbData, getMonths()[1]);
+          populateAssigneeFilter();
+        }).catch(err => {
+          document.getElementById('months-area').innerHTML =
+            '<div style="text-align:center;color:var(--text-muted);padding:60px 0;font-size:13px;">⚠️ 불러오기 실패 (' + (err&&err.code||err&&err.message||'연결 오류') + '). 새로고침 버튼을 눌러주세요.</div>';
+        });
+      }
     } else {
       document.getElementById('pw-error').style.display = 'block';
     }
   }
+  function manualRefresh() {
+    const btn = document.getElementById('refresh-btn');
+    if (btn) { btn.textContent = '↻ 불러오는 중...'; btn.disabled = true; }
+    document.getElementById('months-area').innerHTML =
+      '<div style="text-align:center;color:var(--text-muted);padding:60px 0;font-size:13px;">⏳ 데이터 불러오는 중...</div>';
+    Promise.all([
+      _db.ref('s9_companies').once('value'),
+      _db.ref('s9_templates').once('value'),
+      _db.ref('s9_staff').once('value')
+    ]).then(([cSnap, tSnap, sSnap]) => {
+      const tVal = tSnap.val() || {};
+      _fbTemplates.in         = tVal.in         || null;
+      _fbTemplates.out        = tVal.out        || null;
+      _fbTemplates.office_in  = tVal.office_in  || null;
+      _fbTemplates.office_out = tVal.office_out || null;
+      _fbTplLoaded = true;
+      _fbStaff = sSnap.val() || null;
+      const val = cSnap.val();
+      _fbData = val ? (Array.isArray(val) ? val : Object.values(val).filter(Boolean)) : [];
+      renderMonths(_fbData);
+      document.getElementById('summary-area').innerHTML = renderSummary(_fbData, getMonths()[1]);
+      populateAssigneeFilter();
+      if (btn) { btn.textContent = '↻ 새로고침'; btn.disabled = false; }
+    }).catch(() => {
+      if (btn) { btn.textContent = '↻ 새로고침'; btn.disabled = false; }
+    });
+  }
+
   function doLogout() {
     document.getElementById('main-screen').style.display  = 'none';
     document.getElementById('login-screen').style.display = 'flex';
