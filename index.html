@@ -1290,7 +1290,11 @@
   }
   function setData(d) {
     _fbData = d;
-    if (_fbListening) { _db.ref('s9_companies').set(d); }
+    if (_fbListening) {
+      _db.ref('s9_companies').set(d).catch(err => {
+        alert('⚠️ 저장 실패\n' + (err.code || err.message) + '\n\nFirebase 보안 규칙을 확인해 주세요.');
+      });
+    }
     else { localStorage.setItem('s9_companies', JSON.stringify(d)); }
   }
   function genId()    { return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
