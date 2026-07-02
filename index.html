@@ -1030,6 +1030,7 @@
       if (document.getElementById('main-screen').style.display !== 'none') {
         renderMonths(_fbData);
         document.getElementById('summary-area').innerHTML = renderSummary(_fbData, getMonths()[1]);
+        if (clCompanyId) refreshClItems();
       }
     });
 
@@ -1044,6 +1045,7 @@
       _fbTemplates.out        = val.out        || null;
       _fbTemplates.office_in  = val.office_in  || null;
       _fbTemplates.office_out = val.office_out || null;
+      if (clCompanyId) refreshClItems();
     });
 
     /* localStorage → Firebase 최초 마이그레이션 */
@@ -1597,7 +1599,10 @@
       }).join('');
     }
 
-    document.getElementById('cl-items').innerHTML = html;
+    const clScroll = document.getElementById('cl-items');
+    const prevScrollTop = clScroll.scrollTop;
+    clScroll.innerHTML = html;
+    clScroll.scrollTop = prevScrollTop;
   }
 
   function toggleChecklistItem(itemId) {
