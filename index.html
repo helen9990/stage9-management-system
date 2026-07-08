@@ -836,9 +836,10 @@
     <div class="login-icon">🔐</div>
     <div class="login-brand">STAGE9</div>
     <div class="login-title">입퇴주 관리 시스템</div>
-    <input type="password" id="pw-input" class="login-input" placeholder="비밀번호를 입력하세요">
+    <input type="email" id="email-input" class="login-input" placeholder="이메일" autocomplete="username">
+    <input type="password" id="pw-input" class="login-input" placeholder="비밀번호를 입력하세요" autocomplete="current-password">
     <button class="login-btn" onclick="doLogin()">입장하기</button>
-    <div class="login-error" id="pw-error">비밀번호가 올바르지 않습니다</div>
+    <div class="login-error" id="pw-error">이메일 또는 비밀번호가 올바르지 않습니다</div>
   </div>
 </div>
 
@@ -1002,9 +1003,8 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script>
-  const PASSWORD = 'stage9990!';
-
   /* ─── Firebase 초기화 ─── */
   firebase.initializeApp({
     apiKey: "AIzaSyCzjuILR-y1miDFRVJmRfX1aYxgmv2AyM0",
@@ -1015,7 +1015,8 @@
     messagingSenderId: "659754645346",
     appId: "1:659754645346:web:d5103b5519d6957f265e3b"
   });
-  const _db = firebase.database();
+  const _db   = firebase.database();
+  const _auth = firebase.auth();
 
   let _fbData           = null;
   let _fbStaff          = null;
@@ -1334,47 +1335,77 @@
   }
 
   /* ─── Auth ─── */
-  function doLogin() {
-    if (document.getElementById('pw-input').value === PASSWORD) {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('main-screen').style.display  = 'block';
-      initControls();
-      document.getElementById('month-nav-label').textContent = formatMonth(selectedMonth);
-      document.getElementById('month-picker').value = selectedMonth;
-      if (_fbData !== null) {
-        render();
-        if (!_fbListening) startFirebaseSync();
-      } else {
-        document.getElementById('months-area').innerHTML =
-          '<div style="text-align:center;color:var(--text-muted);padding:60px 0;font-size:13px;">⏳ 데이터 불러오는 중...</div>';
-        document.getElementById('summary-area').innerHTML = '';
-        if (!_fbListening) startFirebaseSync();
-        Promise.all([
-          _db.ref('s9_companies').once('value'),
-          _db.ref('s9_templates').once('value'),
-          _db.ref('s9_staff').once('value')
-        ]).then(([cSnap, tSnap, sSnap]) => {
-          const tVal = tSnap.val() || {};
-          _fbTemplates.in         = tVal.in         || null;
-          _fbTemplates.out        = tVal.out        || null;
-          _fbTemplates.office_in  = tVal.office_in  || null;
-          _fbTemplates.office_out = tVal.office_out || null;
-          _fbTplLoaded = true;
-          _fbStaff = sSnap.val() || null;
-          const val = cSnap.val();
-          _fbData = val ? (Array.isArray(val) ? val : Object.values(val).filter(Boolean)) : [];
-          renderMonths(_fbData);
-          document.getElementById('summary-area').innerHTML = renderSummary(_fbData, getMonths()[1]);
-          populateAssigneeFilter();
-        }).catch(err => {
-          document.getElementById('months-area').innerHTML =
-            '<div style="text-align:center;color:var(--text-muted);padding:60px 0;font-size:13px;">⚠️ 불러오기 실패 (' + (err&&err.code||err&&err.message||'연결 오류') + '). 새로고침 버튼을 눌러주세요.</div>';
-        });
-      }
+  function enterApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-screen').style.display  = 'block';
+    initControls();
+    document.getElementById('month-nav-label').textContent = formatMonth(selectedMonth);
+    document.getElementById('month-picker').value = selectedMonth;
+    if (_fbData !== null) {
+      render();
+      if (!_fbListening) startFirebaseSync();
     } else {
-      document.getElementById('pw-error').style.display = 'block';
+      document.getElementById('months-area').innerHTML =
+        '<div style="text-align:center;color:var(--text-muted);padding:60px 0;font-size:13px;">⏳ 데이터 불러오는 중...</div>';
+      document.getElementById('summary-area').innerHTML = '';
+      if (!_fbListening) startFirebaseSync();
+      Promise.all([
+        _db.ref('s9_companies').once('value'),
+        _db.ref('s9_templates').once('value'),
+        _db.ref('s9_staff').once('value')
+      ]).then(([cSnap, tSnap, sSnap]) => {
+        const tVal = tSnap.val() || {};
+        _fbTemplates.in         = tVal.in         || null;
+        _fbTemplates.out        = tVal.out        || null;
+        _fbTemplates.office_in  = tVal.office_in  || null;
+        _fbTemplates.office_out = tVal.office_out || null;
+        _fbTplLoaded = true;
+        _fbStaff = sSnap.val() || null;
+        const val = cSnap.val();
+        _fbData = val ? (Array.isArray(val) ? val : Object.values(val).filter(Boolean)) : [];
+        renderMonths(_fbData);
+        document.getElementById('summary-area').innerHTML = renderSummary(_fbData, getMonths()[1]);
+        populateAssigneeFilter();
+      }).catch(err => {
+        document.getElementById('months-area').innerHTML =
+          '<div style="text-align:center;color:var(--text-muted);padding:60px 0;font-size:13px;">⚠️ 불러오기 실패 (' + (err&&err.code||err&&err.message||'연결 오류') + '). 새로고침 버튼을 눌러주세요.</div>';
+      });
     }
   }
+
+  function showLoginScreen() {
+    document.getElementById('main-screen').style.display  = 'none';
+    document.getElementById('login-screen').style.display = 'flex';
+  }
+
+  function doLogin() {
+    const email = document.getElementById('email-input').value.trim();
+    const pw    = document.getElementById('pw-input').value;
+    const errEl = document.getElementById('pw-error');
+    const btn   = document.querySelector('.login-btn');
+    errEl.style.display = 'none';
+    if (!email || !pw) {
+      errEl.textContent = '이메일과 비밀번호를 입력하세요';
+      errEl.style.display = 'block';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = '확인 중...';
+    _auth.signInWithEmailAndPassword(email, pw)
+      .catch(() => {
+        errEl.textContent = '이메일 또는 비밀번호가 올바르지 않습니다';
+        errEl.style.display = 'block';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = '입장하기';
+      });
+  }
+
+  _auth.onAuthStateChanged(user => {
+    if (user) enterApp();
+    else showLoginScreen();
+  });
   function manualRefresh() {
     const btn = document.getElementById('refresh-btn');
     if (btn) { btn.textContent = '↻ 불러오는 중...'; btn.disabled = true; }
@@ -1404,14 +1435,16 @@
   }
 
   function doLogout() {
-    document.getElementById('main-screen').style.display  = 'none';
-    document.getElementById('login-screen').style.display = 'flex';
+    _auth.signOut();
+    document.getElementById('email-input').value = '';
     document.getElementById('pw-input').value = '';
     document.getElementById('pw-error').style.display = 'none';
   }
-  document.getElementById('pw-input').addEventListener('keydown', e => {
-    if (e.key==='Enter') doLogin();
-    document.getElementById('pw-error').style.display = 'none';
+  ['email-input','pw-input'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key==='Enter') doLogin();
+      document.getElementById('pw-error').style.display = 'none';
+    });
   });
 
   let _ready = false;
