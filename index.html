@@ -888,14 +888,6 @@
           <span class="shortcut-icon">📧</span>
           <span class="shortcut-label">이메일</span>
         </a>
-        <a class="shortcut-item" href="https://121.142.104.1/#/login" target="_blank" rel="noopener" title="바이오스타">
-          <span class="shortcut-icon">🔑</span>
-          <span class="shortcut-label">바이오스타</span>
-        </a>
-        <a class="shortcut-item" href="http://172.16.3.25:18080/mbAuth/index.html?locale=en_US#Login" target="_blank" rel="noopener" title="리코 복합기">
-          <span class="shortcut-icon">🖨️</span>
-          <span class="shortcut-label">복합기</span>
-        </a>
         <a class="shortcut-item" href="https://app.modusign.co.kr/authentication/signin?redirectTo=%2Fesign%2Fhome" target="_blank" rel="noopener" title="모두싸인">
           <span class="shortcut-icon">✍️</span>
           <span class="shortcut-label">모두싸인</span>
@@ -1213,13 +1205,10 @@
   function getStages(type) { return (type==='out'||type==='office_out') ? OUT_STAGES : IN_STAGES; }
 
   /* ─── 담당자 ─── */
-  const STAFF_DEFAULTS = [
-    { id:'sarah', name:'새라', email:'sarah@stage9.co.kr' },
-    { id:'helen', name:'헬렌', email:'helen@stage9.co.kr' },
-  ];
+  const STAFF_DEFAULTS = [];
   const STAFF_COLORS = [
-    { text:'#c45a7a', bg:'rgba(180,55,95,0.18)' },   // 새라: 자주
-    { text:'#c9a800', bg:'rgba(210,175,0,0.18)' },   // 헬렌: 노랑
+    { text:'#c45a7a', bg:'rgba(180,55,95,0.18)' },
+    { text:'#c9a800', bg:'rgba(210,175,0,0.18)' },
     { text:'#6c8eff', bg:'rgba(108,142,255,0.14)' },
     { text:'#38a169', bg:'rgba(56,161,105,0.14)' },
     { text:'#fb7c1e', bg:'rgba(251,124,30,0.14)' },
