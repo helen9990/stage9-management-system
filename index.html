@@ -21,6 +21,8 @@
       --green: #38a169;
       --red: #e53e3e;
       --blue: #6c8eff;
+      --purple: #a78bfa;
+      --purple-dim: rgba(167,139,250,0.12);
       --topbar: 54px;
     }
 
@@ -329,6 +331,40 @@
     /* ─── RIGHT PANEL ─── */
     .right-panel { overflow-y: auto; padding: 20px 24px; }
 
+    /* ─── 진행중/완료 뷰 탭 ─── */
+    .view-tabs {
+      display: flex; align-items: center; gap: 22px; margin-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .view-tab {
+      background: transparent; border: none; cursor: pointer;
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      color: var(--text-muted); padding: 9px 2px;
+      border-bottom: 2px solid transparent;
+      display: flex; align-items: center; gap: 7px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+    .view-tab .view-tab-badge {
+      font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
+      background: var(--bg-3); color: var(--text-muted);
+    }
+    .view-tab.active .view-tab-badge { background: var(--accent-dim); color: var(--accent); }
+    .view-tab.done-tab.active { border-bottom-color: var(--green); }
+    .view-tab.done-tab.active .view-tab-badge { background: rgba(56,161,105,0.14); color: var(--green); }
+    .month-tag-badge {
+      font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 5px;
+      font-weight: 600; color: var(--text-muted); background: rgba(255,255,255,0.06);
+    }
+    .range-caption {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11.5px; color: var(--text-muted);
+      padding-bottom: 9px;
+      white-space: nowrap;
+    }
+    .range-caption b { color: var(--text); font-weight: 700; }
+
     /* ─── MONTH SECTION ─── */
     .month-section { margin-bottom: 24px; }
     .month-header {
@@ -370,6 +406,7 @@
     .type-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
     .type-dot.in  { background: var(--accent); }
     .type-dot.out { background: var(--blue); }
+    .type-dot.renewal { background: var(--purple); }
     .add-btn {
       background: var(--accent-dim);
       color: var(--accent);
@@ -429,6 +466,15 @@
       color: #7ecfe4;
       background: rgba(126,207,228,0.14);
     }
+    .renewal-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 5px;
+      font-weight: 600;
+      color: var(--purple);
+      background: var(--purple-dim);
+    }
     .assignee-badge {
       font-size: 10px;
       padding: 2px 6px;
@@ -455,6 +501,7 @@
     .cl-bar { width: 100%; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
     .cl-bar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.2s; }
     .cl-bar-fill.out { background: var(--blue); }
+    .cl-bar-fill.renewal { background: var(--purple); }
     .memo-text {
       font-size: 11px;
       color: var(--text-muted);
@@ -555,6 +602,7 @@
       margin-bottom: 14px;
     }
     .cl-stage-label.out-label { color: var(--blue); }
+    .cl-stage-label.renewal-label { color: var(--purple); }
 
     /* 체크리스트 스크롤 영역 */
     .cl-scroll {
@@ -697,6 +745,7 @@
     .menu-stage-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
     .menu-stage-title { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 10px; }
     .menu-stage-title.out-color { color: var(--blue); }
+    .menu-stage-title.renewal-color { color: var(--purple); }
     .menu-item-row {
       display: flex;
       align-items: center;
@@ -815,6 +864,7 @@
     /* 메뉴 수정 - 담당자 탭 */
     .menu-tab.staff-tab.active { background: rgba(56,161,105,0.12); border-color: rgba(56,161,105,0.4); color: var(--green); }
     .menu-tab.office-in-tab.active, .menu-tab.office-out-tab.active { background: rgba(126,207,228,0.12); border-color: rgba(126,207,228,0.4); color: #7ecfe4; }
+    .menu-tab.renewal-tab.active { background: var(--purple-dim); border-color: rgba(167,139,250,0.4); color: var(--purple); }
     .staff-item-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 
     @media (max-width: 760px) {
@@ -904,7 +954,17 @@
     </div>
 
     <div class="right-panel">
+      <div class="view-tabs">
+        <button class="view-tab active" id="tab-view-progress" onclick="switchView('progress')">
+          진행중 <span class="view-tab-badge" id="count-view-progress">0</span>
+        </button>
+        <button class="view-tab done-tab" id="tab-view-done" onclick="switchView('done')">
+          완료 <span class="view-tab-badge" id="count-view-done">0</span>
+        </button>
+        <div class="range-caption">🗓 <span id="range-text"></span></div>
+      </div>
       <div id="months-area"></div>
+      <div id="done-area" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -926,16 +986,23 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">구분 *</label>
-        <select class="form-select" id="f-type">
+        <select class="form-select" id="f-type" onchange="toggleExpiryField()">
           <option value="in">📥 입주</option>
           <option value="out">📤 퇴주</option>
           <option value="office_in">🏢 오피스 이전 입주</option>
           <option value="office_out">🏢 오피스 이전 퇴주</option>
+          <option value="renewal">🔁 재계약</option>
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">예정 월 *</label>
+        <label class="form-label" id="f-month-label">예정 월 *</label>
         <input type="month" class="form-input" id="f-month">
+      </div>
+    </div>
+    <div class="form-row" id="f-expiry-month-group" style="display:none;">
+      <div class="form-group">
+        <label class="form-label">만료월 *</label>
+        <input type="month" class="form-input" id="f-expiry-month">
       </div>
     </div>
     <div class="form-row">
@@ -983,6 +1050,7 @@
       <button class="menu-tab out-tab"         id="tab-out"        onclick="switchMenuTab('out')">📤 퇴주</button>
       <button class="menu-tab office-in-tab"   id="tab-office-in"  onclick="switchMenuTab('office_in')">🏢 이전입주</button>
       <button class="menu-tab office-out-tab"  id="tab-office-out" onclick="switchMenuTab('office_out')">🏢 이전퇴주</button>
+      <button class="menu-tab renewal-tab"     id="tab-renewal"    onclick="switchMenuTab('renewal')">🔁 재계약</button>
       <button class="menu-tab staff-tab"       id="tab-staff"      onclick="switchMenuTab('staff')">👥 담당자</button>
     </div>
     <div class="menu-modal-inner" id="menu-edit-content"></div>
@@ -1012,7 +1080,7 @@
 
   let _fbData           = null;
   let _fbStaff          = null;
-  let _fbTemplates      = { in: null, out: null, office_in: null, office_out: null };
+  let _fbTemplates      = { in: null, out: null, office_in: null, office_out: null, renewal: null };
   let _fbListening      = false;
   let _fbTplLoaded      = false;
 
@@ -1042,6 +1110,7 @@
       _fbTemplates.out        = val.out        || null;
       _fbTemplates.office_in  = val.office_in  || null;
       _fbTemplates.office_out = val.office_out || null;
+      _fbTemplates.renewal    = val.renewal    || null;
       _fbTplLoaded = true;
       if (_fbData && _fbData.length > 0) {
         renderMonths(_fbData);
@@ -1172,6 +1241,31 @@
     ],
   };
 
+  const RENEWAL_STAGES = [
+    { key:'s1', label:'재계약 의사 확정' },
+    { key:'s2', label:'재계약 확정 후' },
+    { key:'s3', label:'퇴주확정' },
+  ];
+
+  const RENEWAL_CHECKLIST_DEFAULTS = {
+    s1: [
+      { id:'rn1_0', text:'재계약 이메일 보내기' },
+      { id:'rn1_1', text:'유선/문자 회신 연락' },
+      { id:'rn1_2', text:'재계약 미팅 진행' },
+    ],
+    s2: [
+      { id:'rn2_0', text:'재계약 시트 입력' },
+      { id:'rn2_1', text:'재계약서 작성' },
+      { id:'rn2_2', text:'모두싸인 날인' },
+      { id:'rn2_3', text:'WMS 계약서 업데이트' },
+      { id:'rn2_4', text:'삼성시트 계약기간 변경' },
+      { id:'rn2_5', text:'매출정산서 시트 변경' },
+    ],
+    s3: [
+      { id:'rn3_0', text:'퇴주 확정 - 퇴주 기업 자동 생성' },
+    ],
+  };
+
   /* ─── 템플릿 함수 ─── */
   function getCompanyTemplates(c) {
     if (c && c.isOfficeMove) return getTemplates((c.type||'in')==='out' ? 'office_out' : 'office_in');
@@ -1182,10 +1276,12 @@
     const defMap = {
       in: IN_CHECKLIST_DEFAULTS, out: OUT_CHECKLIST_DEFAULTS,
       office_in: OFFICE_MOVE_IN_DEFAULTS, office_out: OFFICE_MOVE_OUT_DEFAULTS,
+      renewal: RENEWAL_CHECKLIST_DEFAULTS,
     };
     const lsKeyMap = {
       in: 's9_cl_templates', out: 's9_cl_out_templates',
       office_in: 's9_cl_office_in_templates', office_out: 's9_cl_office_out_templates',
+      renewal: 's9_cl_renewal_templates',
     };
     const def = defMap[type] || IN_CHECKLIST_DEFAULTS;
     if (_fbTemplates[type] != null) return _fbTemplates[type];
@@ -1198,11 +1294,15 @@
     const lsKeyMap = {
       in: 's9_cl_templates', out: 's9_cl_out_templates',
       office_in: 's9_cl_office_in_templates', office_out: 's9_cl_office_out_templates',
+      renewal: 's9_cl_renewal_templates',
     };
     if (_fbListening) { _fbTemplates[type] = t; _db.ref('s9_templates/'+type).set(t); }
     else { localStorage.setItem(lsKeyMap[type]||type, JSON.stringify(t)); }
   }
-  function getStages(type) { return (type==='out'||type==='office_out') ? OUT_STAGES : IN_STAGES; }
+  function getStages(type) {
+    if (type==='renewal') return RENEWAL_STAGES;
+    return (type==='out'||type==='office_out') ? OUT_STAGES : IN_STAGES;
+  }
 
   /* ─── 담당자 ─── */
   const STAFF_DEFAULTS = [];
@@ -1247,6 +1347,15 @@
   let searchQuery        = '';
   let filterAssignee     = '';
   let typeCollapseState = (()=>{ try{ return JSON.parse(localStorage.getItem('s9_type_collapse')||'{}'); }catch{ return {}; } })();
+  let currentView        = 'progress';
+
+  function switchView(v) {
+    currentView = v;
+    document.getElementById('tab-view-progress').classList.toggle('active', v==='progress');
+    document.getElementById('tab-view-done').classList.toggle('active', v==='done');
+    document.getElementById('months-area').style.display = v==='progress' ? '' : 'none';
+    document.getElementById('done-area').style.display    = v==='done' ? '' : 'none';
+  }
 
   function todayYM() {
     const d = new Date();
@@ -1310,17 +1419,31 @@
     return { done, total };
   }
 
-  function isAllDone(c) {
+  function isStageDone(c, s) {
     const t = getCompanyTemplates(c);
-    return getStages(c.type||'in').every(s => {
-      const deleted = (c.deletedItems&&c.deletedItems[s.key])||[];
-      const items   = (t[s.key]||[]).filter(i=>!deleted.includes(i.id));
-      const checks  = (c.checklists&&c.checklists[s.key])||{};
-      const custom  = (c.customItems&&c.customItems[s.key])||[];
-      const tmplDone = items.every(i => checks[i.id]===true);
-      const custDone = custom.every(i => i.checked);
-      return tmplDone && custDone;
-    });
+    const deleted = (c.deletedItems&&c.deletedItems[s.key])||[];
+    const items   = (t[s.key]||[]).filter(i=>!deleted.includes(i.id));
+    const checks  = (c.checklists&&c.checklists[s.key])||{};
+    const custom  = (c.customItems&&c.customItems[s.key])||[];
+    const tmplDone = items.every(i => checks[i.id]===true);
+    const custDone = custom.every(i => i.checked);
+    return tmplDone && custDone;
+  }
+  function isAllDone(c) {
+    if ((c.type||'in') === 'renewal') {
+      const [s1, s2, s3] = getStages('renewal');
+      return isStageDone(c, s3) || (isStageDone(c, s1) && isStageDone(c, s2));
+    }
+    return getStages(c.type||'in').every(s => isStageDone(c, s));
+  }
+
+  /* 재계약 s3(퇴주확정) 스테이지 전체 완료 여부에 맞춰 자동전환 동기화 —
+     단일 항목 체크 여부가 아니라 isStageDone 기준으로 판단해야
+     s3에 항목이 추가/삭제되거나 기업 전용 커스텀 항목이 있어도 isAllDone과 어긋나지 않음 */
+  function maybeSyncRenewalConversion(company) {
+    if (!company || (company.type||'in') !== 'renewal' || clStageKey !== 's3') return;
+    const s3 = getStages('renewal')[2];
+    syncRenewalOutConversion(company, isStageDone(company, s3));
   }
 
   /* ─── Auth ─── */
@@ -1348,6 +1471,7 @@
         _fbTemplates.out        = tVal.out        || null;
         _fbTemplates.office_in  = tVal.office_in  || null;
         _fbTemplates.office_out = tVal.office_out || null;
+        _fbTemplates.renewal    = tVal.renewal    || null;
         _fbTplLoaded = true;
         _fbStaff = sSnap.val() || null;
         const val = cSnap.val();
@@ -1410,6 +1534,7 @@
       _fbTemplates.out        = tVal.out        || null;
       _fbTemplates.office_in  = tVal.office_in  || null;
       _fbTemplates.office_out = tVal.office_out || null;
+      _fbTemplates.renewal    = tVal.renewal    || null;
       _fbTplLoaded = true;
       _fbStaff = sSnap.val() || null;
       const val = cSnap.val();
@@ -1497,6 +1622,51 @@
       renderMonthSection(companies, prev, '전월', 'tag-prev') +
       renderMonthSection(companies, cur,  '당월', 'tag-cur') +
       renderMonthSection(companies, nxt,  '익월', 'tag-nxt');
+    renderDoneArea(companies);
+    updateViewCounts(companies);
+    updateRangeCaption();
+  }
+
+  function updateRangeCaption() {
+    const [prev,,nxt] = getMonths();
+    document.getElementById('range-text').innerHTML =
+      `<b>${formatMonth(prev)} ~ ${formatMonth(nxt)}</b> (전월·당월·익월) 표시 중`;
+  }
+
+  /* ─── 완료 뷰 (현재 보고 있는 전월~익월 범위 안의 완료 기업만 타입별로 모아서 표시) ─── */
+  function inCurrentWindow(c) {
+    return getMonths().includes(c.month);
+  }
+  function passesSearchAndAssignee(c) {
+    const q = searchQuery;
+    return (!q || c.name.toLowerCase().includes(q)) &&
+      (!filterAssignee || c.assigneeId===filterAssignee);
+  }
+  function renderDoneArea(companies) {
+    if (!companies) companies = getData();
+    const TYPE_LABEL = { in:'입주 완료', out:'퇴주 완료', renewal:'재계약 완료' };
+    const groups = ['in','out','renewal'].map(t => {
+      const list = companies.filter(c=>c.type===t && isAllDone(c) && inCurrentWindow(c) && passesSearchAndAssignee(c));
+      return `<div class="type-section">
+        <div class="type-header">
+          <div class="type-label">
+            <div class="type-dot ${t}"></div>
+            ${TYPE_LABEL[t]}&nbsp;<span style="color:var(--text-dim)">${list.length}건</span>
+          </div>
+        </div>
+        ${renderTable(list, getStages(t), t, true)}
+      </div>`;
+    }).join('');
+    document.getElementById('done-area').innerHTML = `<div class="month-section">${groups}</div>`;
+  }
+
+  function updateViewCounts(companies) {
+    if (!companies) companies = getData();
+    const inWindow = companies.filter(c => inCurrentWindow(c) && passesSearchAndAssignee(c));
+    const doneCount = inWindow.filter(isAllDone).length;
+    const progressCount = inWindow.length - doneCount;
+    document.getElementById('count-view-progress').textContent = progressCount;
+    document.getElementById('count-view-done').textContent     = doneCount;
   }
 
   function renderSummary(companies, cur) {
@@ -1522,20 +1692,15 @@
   }
 
   function renderMonthSection(companies, ym, label, tagClass) {
-    const q = searchQuery;
-    const allIn  = companies.filter(c=>c.month===ym&&c.type==='in');
-    const allOut = companies.filter(c=>c.month===ym&&c.type==='out');
-    const inList  = allIn.filter(c=>
-      (!q || c.name.toLowerCase().includes(q)) &&
-      (!filterAssignee || c.assigneeId===filterAssignee)
-    );
-    const outList = allOut.filter(c=>
-      (!q || c.name.toLowerCase().includes(q)) &&
-      (!filterAssignee || c.assigneeId===filterAssignee)
-    );
-    const totalAll = allIn.length+allOut.length;
-    const totalVis = inList.length+outList.length;
-    const isFiltered = q || filterAssignee;
+    const allIn      = companies.filter(c=>c.month===ym&&c.type==='in'&&!isAllDone(c));
+    const allOut     = companies.filter(c=>c.month===ym&&c.type==='out'&&!isAllDone(c));
+    const allRenewal = companies.filter(c=>c.month===ym&&c.type==='renewal'&&!isAllDone(c));
+    const inList      = allIn.filter(passesSearchAndAssignee);
+    const outList     = allOut.filter(passesSearchAndAssignee);
+    const renewalList = allRenewal.filter(passesSearchAndAssignee);
+    const totalAll = allIn.length+allOut.length+allRenewal.length;
+    const totalVis = inList.length+outList.length+renewalList.length;
+    const isFiltered = searchQuery || filterAssignee;
     const countStr = isFiltered ? `${totalVis}/${totalAll}건` : `${totalAll}건`;
     const shut = collapseState[ym]===true;
     return `
@@ -1547,11 +1712,11 @@
           <div class="chevron ${shut?'shut':'open'}">▼</div>
         </div>
         <div class="month-content${shut?' collapsed':''}">
-          ${['in','out'].map(t => {
-            const list    = t==='in' ? inList : outList;
-            const stages  = t==='in' ? IN_STAGES : OUT_STAGES;
-            const label2  = t==='in' ? '입주 예정' : '퇴주 예정';
-            const dotCls  = t==='in' ? 'in' : 'out';
+          ${['in','out','renewal'].map(t => {
+            const list    = t==='in' ? inList : t==='out' ? outList : renewalList;
+            const stages  = getStages(t);
+            const label2  = t==='in' ? '입주 예정' : t==='out' ? '퇴주 예정' : '재계약';
+            const dotCls  = t;
             const tShut   = typeCollapseState[ym+'_'+t]===true;
             return `<div class="type-section">
               <div class="type-header" style="cursor:pointer;user-select:none;" onclick="toggleTypeCollapse('${ym}','${t}')">
@@ -1569,10 +1734,14 @@
       </div>`;
   }
 
-  function renderTable(list, stages, type) {
-    const isOut = type==='out';
-    const headBg    = isOut ? 'rgba(108,142,255,0.15)' : 'rgba(251,124,30,0.13)';
-    const headColor = isOut ? 'var(--blue)' : 'var(--accent)';
+  function renderTable(list, stages, type, showMonthTag) {
+    const THEME = {
+      in:      { headBg:'rgba(251,124,30,0.13)',  headColor:'var(--accent)', barCls:'' },
+      out:     { headBg:'rgba(108,142,255,0.15)', headColor:'var(--blue)',   barCls:' out' },
+      renewal: { headBg:'rgba(167,139,250,0.15)', headColor:'var(--purple)', barCls:' renewal' },
+    };
+    const th = THEME[type] || THEME.in;
+    const headBg = th.headBg, headColor = th.headColor;
     const heads = `<th style="background:${headBg};color:${headColor};">기업명</th>${stages.map(s=>`<th style="background:${headBg};color:${headColor};">${escHtml(s.label)}</th>`).join('')}<th style="background:${headBg};color:${headColor};">메모</th><th style="background:${headBg};"></th>`;
     if (!list.length) return `
       <div class="table-wrap"><table class="company-table">
@@ -1587,11 +1756,11 @@
         const { done: doneCount, total } = getProgress(c, s.key);
         const allDone = total > 0 && doneCount === total;
         const pct = total > 0 ? Math.round(doneCount/total*100) : 0;
-        const fracColor = allDone ? 'var(--green)' : doneCount>0 ? (isOut?'var(--blue)':'var(--accent)') : 'var(--text-dim)';
+        const fracColor = allDone ? 'var(--green)' : doneCount>0 ? headColor : 'var(--text-dim)';
         return `<td>
           <div class="cl-progress${allDone?' all-done':''}" onclick="openChecklistModal('${c.id}','${s.key}')">
             <div class="cl-frac" style="color:${fracColor}">${allDone?'✅':doneCount+'/'+total}</div>
-            ${total>0&&!allDone?`<div class="cl-bar"><div class="cl-bar-fill${isOut?' out':''}" style="width:${pct}%"></div></div>`:''}
+            ${total>0&&!allDone?`<div class="cl-bar"><div class="cl-bar-fill${th.barCls}" style="width:${pct}%"></div></div>`:''}
           </div>
         </td>`;
       }).join('');
@@ -1602,9 +1771,13 @@
         ? `<span class="assignee-badge" style="color:${aColor.text};background:${aColor.bg};">👤 ${assigneeName}</span>`
         : '';
       const omBadge = c.isOfficeMove ? `<span class="office-move-badge">🏢 오피스 이전</span>` : '';
+      const expiryBadge = (c.type==='renewal' && c.expiryMonth)
+        ? `<span class="renewal-badge">만료 ${parseInt(c.expiryMonth.split('-')[1])}월</span>` : '';
+      const convertedBadge = c.sourceRenewalId ? `<span class="renewal-badge">🔁 재계약 전환</span>` : '';
+      const monthTagBadge = showMonthTag ? `<span class="month-tag-badge">${formatMonth(c.month)}</span>` : '';
       const allDoneCompany = isAllDone(c);
       return `<tr>
-        <td class="company-name" style="${allDoneCompany?'color:var(--text-dim);':''}">${n}${r?`<span class="room-badge">${r}</span>`:''}${omBadge}${aBadge}</td>
+        <td class="company-name" style="${allDoneCompany?'color:var(--text-dim);':''}">${n}${r?`<span class="room-badge">${r}</span>`:''}${omBadge}${expiryBadge}${convertedBadge}${monthTagBadge}${aBadge}</td>
         ${stageCols}
         <td><div class="memo-text" title="${memo}">${memo||'—'}</div></td>
         <td><div class="action-btns">
@@ -1635,7 +1808,7 @@
     const stage = getStages(clType).find(s=>s.key===stageKey);
     const labelEl = document.getElementById('cl-stage-label');
     labelEl.textContent = stage ? stage.label : stageKey;
-    labelEl.className   = 'cl-stage-label' + (clType==='out'?' out-label':'');
+    labelEl.className   = 'cl-stage-label' + (clType==='out'?' out-label':clType==='renewal'?' renewal-label':'');
     document.getElementById('cl-title').textContent = company.name;
     document.getElementById('cl-new-input').value = '';
     refreshClItems();
@@ -1706,9 +1879,36 @@
     if (!company.checklists[clStageKey]) company.checklists[clStageKey] = {};
     company.checklists[clStageKey][itemId] = !company.checklists[clStageKey][itemId];
     setData(data);
+    maybeSyncRenewalConversion(company);
     refreshClItems();
     renderMonths(getData());
     document.getElementById('summary-area').innerHTML = renderSummary(getData(), getMonths()[1]);
+  }
+
+  /* ─── 재계약 → 퇴주 자동 전환 ─── */
+  function syncRenewalOutConversion(renewalCompany, checked) {
+    const data = getData();
+    const existingIdx = data.findIndex(x => x.sourceRenewalId === renewalCompany.id);
+    if (checked) {
+      if (existingIdx !== -1) return;
+      const month = renewalCompany.expiryMonth || renewalCompany.month;
+      data.push({
+        id: genId(),
+        name: renewalCompany.name,
+        room: renewalCompany.room || '',
+        type: 'out',
+        month,
+        memo: renewalCompany.memo || '',
+        assigneeId: renewalCompany.assigneeId || '',
+        isOfficeMove: false,
+        checklists: initChecklists('out', false),
+        sourceRenewalId: renewalCompany.id,
+      });
+      setData(data);
+    } else if (existingIdx !== -1) {
+      data.splice(existingIdx, 1);
+      setData(data);
+    }
   }
 
   function toggleCustomItem(itemId) {
@@ -1718,6 +1918,7 @@
     const item = company.customItems[clStageKey].find(i=>i.id===itemId);
     if (item) item.checked = !item.checked;
     setData(data);
+    maybeSyncRenewalConversion(company);
     refreshClItems();
     renderMonths(getData());
     document.getElementById('summary-area').innerHTML = renderSummary(getData(), getMonths()[1]);
@@ -1738,6 +1939,7 @@
       checked: false,
     });
     setData(data);
+    maybeSyncRenewalConversion(company);
     input.value = '';
     refreshClItems();
     renderMonths(getData());
@@ -1755,6 +1957,7 @@
     if (!company.deletedItems[clStageKey].includes(itemId))
       company.deletedItems[clStageKey].push(itemId);
     setData(data);
+    maybeSyncRenewalConversion(company);
     refreshClItems();
     renderMonths(getData());
     document.getElementById('summary-area').innerHTML = renderSummary(getData(), getMonths()[1]);
@@ -1766,6 +1969,7 @@
     if (!company||!company.customItems||!company.customItems[clStageKey]) return;
     company.customItems[clStageKey] = company.customItems[clStageKey].filter(i=>i.id!==itemId);
     setData(data);
+    maybeSyncRenewalConversion(company);
     refreshClItems();
     renderMonths(getData());
     document.getElementById('summary-area').innerHTML = renderSummary(getData(), getMonths()[1]);
@@ -1789,6 +1993,7 @@
       out:        JSON.parse(JSON.stringify(getTemplates('out'))),
       office_in:  JSON.parse(JSON.stringify(getTemplates('office_in'))),
       office_out: JSON.parse(JSON.stringify(getTemplates('office_out'))),
+      renewal:    JSON.parse(JSON.stringify(getTemplates('renewal'))),
     };
     editingStaff = JSON.parse(JSON.stringify(getStaff()));
     activeMenuTab = 'in';
@@ -1809,6 +2014,7 @@
     document.getElementById('tab-out').className        = 'menu-tab out-tab'        + (activeMenuTab==='out'?' active':'');
     document.getElementById('tab-office-in').className  = 'menu-tab office-in-tab'  + (activeMenuTab==='office_in'?' active':'');
     document.getElementById('tab-office-out').className = 'menu-tab office-out-tab' + (activeMenuTab==='office_out'?' active':'');
+    document.getElementById('tab-renewal').className    = 'menu-tab renewal-tab'    + (activeMenuTab==='renewal'?' active':'');
     document.getElementById('tab-staff').className      = 'menu-tab staff-tab'      + (activeMenuTab==='staff'?' active':'');
   }
 
@@ -1816,7 +2022,9 @@
     if (activeMenuTab === 'staff') { renderStaffContent(); return; }
     const stages = getStages(activeMenuTab);
     const tmpl   = editingTemplates[activeMenuTab];
-    const isOut  = activeMenuTab==='out' || activeMenuTab==='office_out';
+    const isOut     = activeMenuTab==='out' || activeMenuTab==='office_out';
+    const isRenewal = activeMenuTab==='renewal';
+    const titleCls  = isOut ? ' out-color' : isRenewal ? ' renewal-color' : '';
     const html = stages.map(stage => {
       const items = tmpl[stage.key]||[];
       const rows = items.map((item, idx) => `
@@ -1829,7 +2037,7 @@
           <button class="menu-del-btn" onclick="deleteMenuItem('${stage.key}',${idx})">×</button>
         </div>`).join('');
       return `<div class="menu-stage-section">
-        <div class="menu-stage-title${isOut?' out-color':''}">${escHtml(stage.label)}</div>
+        <div class="menu-stage-title${titleCls}">${escHtml(stage.label)}</div>
         <div id="menu-items-${stage.key}">${rows}</div>
         <button class="menu-add-btn" onclick="addMenuItem('${stage.key}')">+ 항목 추가</button>
       </div>`;
@@ -1874,7 +2082,7 @@
 
   function saveMenuEdit() {
     if (activeMenuTab === 'staff') syncStaffInputs(); else syncTemplateInputs();
-    ['in','out','office_in','office_out'].forEach(t => {
+    ['in','out','office_in','office_out','renewal'].forEach(t => {
       getStages(t).forEach(s => {
         if (editingTemplates[t][s.key]) {
           editingTemplates[t][s.key] = editingTemplates[t][s.key].filter(item=>item.text.trim());
@@ -2024,6 +2232,12 @@
     sel.innerHTML = `<option value="">선택 안 함</option>` +
       staff.map(s=>`<option value="${escHtml(s.id)}"${selectedId===s.id?' selected':''}>${escHtml(s.name)}</option>`).join('');
   }
+  function toggleExpiryField() {
+    const type = document.getElementById('f-type').value;
+    const isRenewal = type === 'renewal';
+    document.getElementById('f-expiry-month-group').style.display = isRenewal ? '' : 'none';
+    document.getElementById('f-month-label').textContent = isRenewal ? '컨택월 *' : '예정 월 *';
+  }
   function openModal(type, month) {
     editingId=null;
     document.getElementById('modal-title').textContent='기업 추가';
@@ -2031,8 +2245,10 @@
     document.getElementById('f-room').value='';
     document.getElementById('f-type').value=type;
     document.getElementById('f-month').value=month;
+    document.getElementById('f-expiry-month').value='';
     document.getElementById('f-memo').value='';
     populateAssigneeSelect('');
+    toggleExpiryField();
     document.getElementById('modal').classList.add('open');
     document.getElementById('f-name').focus();
   }
@@ -2045,8 +2261,10 @@
     document.getElementById('f-room').value=c.room||'';
     document.getElementById('f-type').value=c.isOfficeMove ? 'office_'+c.type : c.type;
     document.getElementById('f-month').value=c.month;
+    document.getElementById('f-expiry-month').value=c.expiryMonth||'';
     document.getElementById('f-memo').value=c.memo||'';
     populateAssigneeSelect(c.assigneeId||'');
+    toggleExpiryField();
     document.getElementById('modal').classList.add('open');
   }
   function closeModal() { document.getElementById('modal').classList.remove('open'); editingId=null; }
@@ -2059,11 +2277,15 @@
     const isOfficeMove = typeVal.startsWith('office_');
     const type        = isOfficeMove ? typeVal.replace('office_', '') : typeVal;
     const month       = document.getElementById('f-month').value;
+    const expiryMonth = document.getElementById('f-expiry-month').value;
     const memo        = document.getElementById('f-memo').value.trim();
     const assigneeId  = document.getElementById('f-assignee').value;
     if (!name)  { alert('기업명을 입력해 주세요.'); return; }
     if (!month) { alert('예정 월을 선택해 주세요.'); return; }
+    if (type==='renewal' && !expiryMonth) { alert('만료월을 선택해 주세요.'); return; }
     const data=getData();
+    const base = {name,room,type,month,memo,assigneeId,isOfficeMove};
+    if (type==='renewal') base.expiryMonth = expiryMonth;
     if (editingId) {
       const c=data.find(x=>x.id===editingId);
       if (c) {
@@ -2072,18 +2294,18 @@
           alert('구분 변경은 불가합니다.\n삭제 후 다시 생성해 주세요.');
           return;
         }
-        Object.assign(c,{name,room,type,month,memo,assigneeId,isOfficeMove});
+        Object.assign(c,base);
         if (!c.checklists) c.checklists = initChecklists(type, isOfficeMove);
       }
     } else {
-      data.push({id:genId(), name, room, type, month, memo, assigneeId, isOfficeMove, checklists:initChecklists(type, isOfficeMove)});
+      data.push({id:genId(), ...base, checklists:initChecklists(type, isOfficeMove)});
     }
     setData(data); closeModal(); render();
   }
 
   function deleteCompany(id) {
     if (!confirm('삭제하시겠습니까?')) return;
-    setData(getData().filter(x=>x.id!==id)); render();
+    setData(getData().filter(x=>x.id!==id && x.sourceRenewalId!==id)); render();
   }
 
   /* Enter키로 항목 추가 */
@@ -2113,10 +2335,13 @@
 
       const pct = totalItems > 0 ? Math.round(totalDone/totalItems*100)+'%' : '—';
 
+      const typeLabel = type==='renewal' ? '재계약'
+        : c.isOfficeMove ? (type==='in' ? '오피스이전 입주' : '오피스이전 퇴주')
+        : (type==='in' ? '입주' : '퇴주');
       rows.push([
         c.name,
         c.room||'',
-        c.isOfficeMove ? (type==='in' ? '오피스이전 입주' : '오피스이전 퇴주') : (type==='in' ? '입주' : '퇴주'),
+        typeLabel,
         c.month,
         ...stageCols,
         pct,
