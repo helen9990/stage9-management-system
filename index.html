@@ -14,6 +14,7 @@
       --bg: #0f0f0f;
       --bg-2: #181818;
       --bg-3: #222222;
+      --bg-4: #252525;
       --border: rgba(255,255,255,0.08);
       --text: #ffffff;
       --text-muted: #888;
@@ -23,7 +24,72 @@
       --blue: #6c8eff;
       --purple: #a78bfa;
       --purple-dim: rgba(167,139,250,0.12);
+      --cyan: #7ecfe4;
+      --cyan-dim: rgba(126,207,228,0.14);
+      --brown: #dd6b20;
+      --overlay-rgb: 255,255,255;
+      --login-card-bg: rgba(24,24,24,0.9);
+      --modal-overlay-bg: rgba(0,0,0,0.75);
       --topbar: 54px;
+      color-scheme: dark;
+    }
+    :root[data-theme="light"] {
+      --accent: #d9660c;
+      --accent-dim: rgba(217,102,12,0.10);
+      --accent-hover: #b8560a;
+      --bg: #f7f6f2;
+      --bg-2: #ffffff;
+      --bg-3: #eeece5;
+      --bg-4: #f1efe8;
+      --border: rgba(24,20,12,0.12);
+      --text: #1c1a15;
+      --text-muted: #5c5748;
+      --text-dim: #b3ac9c;
+      --green: #1f7a52;
+      --red: #c0392b;
+      --blue: #3a56c9;
+      --purple: #6c4fd1;
+      --purple-dim: rgba(108,79,209,0.10);
+      --cyan: #1c8aa3;
+      --cyan-dim: rgba(28,138,163,0.10);
+      --brown: #b8560a;
+      --overlay-rgb: 24,20,12;
+      --login-card-bg: rgba(255,255,255,0.92);
+      --modal-overlay-bg: rgba(24,20,12,0.35);
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) {
+        --accent: #d9660c; --accent-dim: rgba(217,102,12,0.10); --accent-hover: #b8560a;
+        --bg: #f7f6f2; --bg-2: #ffffff; --bg-3: #eeece5; --bg-4: #f1efe8;
+        --border: rgba(24,20,12,0.12);
+        --text: #1c1a15; --text-muted: #5c5748; --text-dim: #b3ac9c;
+        --green: #1f7a52; --red: #c0392b; --blue: #3a56c9;
+        --purple: #6c4fd1; --purple-dim: rgba(108,79,209,0.10);
+        --cyan: #1c8aa3; --cyan-dim: rgba(28,138,163,0.10);
+        --brown: #b8560a;
+        --overlay-rgb: 24,20,12;
+        --login-card-bg: rgba(255,255,255,0.92);
+        --modal-overlay-bg: rgba(24,20,12,0.35);
+        color-scheme: light;
+      }
+    }
+    /* 네이티브 달력/드롭다운 팝업 색상 — 페이지 테마에 맞춰 전환 */
+    :root[data-theme="light"] #month-picker,
+    :root[data-theme="light"] .assignee-filter-select,
+    :root[data-theme="light"] .cl-date-input,
+    :root[data-theme="light"] .form-input,
+    :root[data-theme="light"] .form-select {
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: light) {
+      :root:not([data-theme="dark"]) #month-picker,
+      :root:not([data-theme="dark"]) .assignee-filter-select,
+      :root:not([data-theme="dark"]) .cl-date-input,
+      :root:not([data-theme="dark"]) .form-input,
+      :root:not([data-theme="dark"]) .form-select {
+        color-scheme: light;
+      }
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -43,7 +109,7 @@
       justify-content: center;
     }
     .login-card {
-      background: rgba(24,24,24,0.9);
+      background: var(--login-card-bg);
       border: 1px solid var(--border);
       border-radius: 20px;
       padding: 52px 44px;
@@ -57,7 +123,7 @@
     .login-title { font-size: 22px; font-weight: 700; margin-bottom: 36px; }
     .login-input {
       width: 100%;
-      background: #252525;
+      background: var(--bg-4);
       border: 1px solid transparent;
       border-radius: 10px;
       padding: 14px 18px;
@@ -114,6 +180,18 @@
       font-family: inherit;
     }
     .logout-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .theme-toggle-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 13px;
+      border-radius: 7px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .theme-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
 
     /* ─── DASHBOARD ─── */
     .dashboard {
@@ -144,7 +222,7 @@
     .summary-card.warn { border-color: rgba(251,124,30,0.3); background: rgba(251,124,30,0.05); }
     .summary-num { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 5px; }
     .summary-num.c-green  { color: var(--green); }
-    .summary-num.c-brown  { color: #dd6b20; }
+    .summary-num.c-brown  { color: var(--brown); }
     .summary-num.c-orange { color: var(--accent); }
     .summary-num.c-dim    { color: var(--text-dim); }
     .summary-label { font-size: 11px; color: var(--text-muted); }
@@ -198,7 +276,7 @@
     .nav-btn:hover { color: var(--accent); }
     #month-picker {
       width: 100%;
-      background: #252525;
+      background: var(--bg-4);
       border: 1px solid var(--border);
       border-radius: 7px;
       color: var(--text-muted);
@@ -281,7 +359,7 @@
     }
     .assignee-filter-select:hover,
     .assignee-filter-select:focus { border-color: var(--accent); color: var(--text); }
-    .assignee-filter-select option { background: #252525; }
+    .assignee-filter-select option { background: var(--bg-4); }
     .assignee-filter-select.active { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
 
     .shortcut-title {
@@ -355,7 +433,7 @@
     .view-tab.done-tab.active .view-tab-badge { background: rgba(56,161,105,0.14); color: var(--green); }
     .month-tag-badge {
       font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 5px;
-      font-weight: 600; color: var(--text-muted); background: rgba(255,255,255,0.06);
+      font-weight: 600; color: var(--text-muted); background: rgba(var(--overlay-rgb),0.06);
     }
     .range-caption {
       display: flex; align-items: center; gap: 6px;
@@ -379,7 +457,7 @@
     .month-badge { font-size: 17px; font-weight: 800; transition: color 0.2s; }
     .month-header:hover .month-badge { color: var(--accent); }
     .month-tag { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
-    .tag-prev { background: rgba(255,255,255,0.07); color: var(--text-muted); }
+    .tag-prev { background: rgba(var(--overlay-rgb),0.07); color: var(--text-muted); }
     .tag-cur  { background: var(--accent-dim); color: var(--accent); }
     .tag-nxt  { background: rgba(108,142,255,0.12); color: var(--blue); }
     .chevron { margin-left: auto; font-size: 13px; color: var(--text-muted); transition: transform 0.22s; }
@@ -447,12 +525,12 @@
       font-size: 12px;
       vertical-align: middle;
     }
-    .company-table tbody tr:hover td { background: rgba(255,255,255,0.015); }
+    .company-table tbody tr:hover td { background: rgba(var(--overlay-rgb),0.015); }
     .company-name { font-weight: 600; white-space: nowrap; }
     .room-badge {
       font-size: 10px;
-      color: rgba(255,255,255,0.75);
-      background: rgba(255,255,255,0.08);
+      color: rgba(var(--overlay-rgb),0.75);
+      background: rgba(var(--overlay-rgb),0.08);
       padding: 2px 6px;
       border-radius: 4px;
       margin-left: 5px;
@@ -463,8 +541,8 @@
       border-radius: 4px;
       margin-left: 5px;
       font-weight: 600;
-      color: #7ecfe4;
-      background: rgba(126,207,228,0.14);
+      color: var(--cyan);
+      background: var(--cyan-dim);
     }
     .renewal-badge {
       font-size: 10px;
@@ -535,7 +613,7 @@
     /* ─── MODAL 공통 ─── */
     .modal-overlay {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.75);
+      background: var(--modal-overlay-bg);
       display: none;
       align-items: center;
       justify-content: center;
@@ -556,7 +634,7 @@
     .form-label { font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 5px; }
     .form-input, .form-select {
       width: 100%;
-      background: #252525;
+      background: var(--bg-4);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 10px 12px;
@@ -565,9 +643,10 @@
       outline: none;
       transition: border-color 0.2s;
       font-family: inherit;
+      color-scheme: dark;
     }
     .form-input:focus, .form-select:focus { border-color: var(--accent); }
-    .form-select option { background: #252525; }
+    .form-select option { background: var(--bg-4); }
     .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
     .btn-cancel {
       background: transparent;
@@ -621,11 +700,11 @@
       cursor: pointer;
       transition: background 0.12s;
     }
-    .cl-item:hover { background: rgba(255,255,255,0.04); }
+    .cl-item:hover { background: rgba(var(--overlay-rgb),0.04); }
     .cl-checkbox {
       width: 18px; height: 18px;
       border-radius: 4px;
-      border: 1.5px solid rgba(255,255,255,0.2);
+      border: 1.5px solid rgba(var(--overlay-rgb),0.2);
       flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       font-size: 11px;
@@ -653,7 +732,7 @@
       padding: 9px 8px;
       border-radius: 7px;
     }
-    .cl-custom-item:hover { background: rgba(255,255,255,0.04); }
+    .cl-custom-item:hover { background: rgba(var(--overlay-rgb),0.04); }
     .cl-custom-checkbox-area {
       display: flex;
       align-items: flex-start;
@@ -685,7 +764,7 @@
     }
     .cl-new-input {
       flex: 1;
-      background: rgba(255,255,255,0.04);
+      background: rgba(var(--overlay-rgb),0.04);
       border: 1px solid var(--border);
       border-radius: 7px;
       padding: 8px 11px;
@@ -740,7 +819,7 @@
     }
     .menu-tab.active.in-tab  { background: var(--accent-dim); border-color: rgba(251,124,30,0.4); color: var(--accent); }
     .menu-tab.active.out-tab { background: rgba(108,142,255,0.12); border-color: rgba(108,142,255,0.4); color: var(--blue); }
-    .menu-tab:not(.active):hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+    .menu-tab:not(.active):hover { border-color: rgba(var(--overlay-rgb),0.2); color: var(--text); }
     .menu-stage-section { margin-bottom: 22px; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
     .menu-stage-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
     .menu-stage-title { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 10px; }
@@ -768,7 +847,7 @@
     .menu-item-row.dragging { opacity: 0.35; }
     .menu-item-input {
       flex: 1;
-      background: #252525;
+      background: var(--bg-4);
       border: 1px solid var(--border);
       border-radius: 6px;
       padding: 7px 10px;
@@ -795,7 +874,7 @@
     .menu-del-btn:hover { border-color: var(--red); color: var(--red); }
     .menu-add-btn {
       background: transparent;
-      border: 1px dashed rgba(255,255,255,0.15);
+      border: 1px dashed rgba(var(--overlay-rgb),0.15);
       color: var(--text-muted);
       padding: 7px 0;
       border-radius: 6px;
@@ -819,7 +898,7 @@
       flex-wrap: wrap;
     }
     .cl-date-input {
-      background: rgba(255,255,255,0.05);
+      background: rgba(var(--overlay-rgb),0.05);
       border: 1px solid var(--border);
       border-radius: 5px;
       padding: 3px 7px;
@@ -833,7 +912,7 @@
     }
     .cl-date-input:focus { border-color: var(--accent); color: var(--text); }
     .cl-assignee-select {
-      background: rgba(255,255,255,0.05);
+      background: rgba(var(--overlay-rgb),0.05);
       border: 1px solid var(--border);
       border-radius: 5px;
       padding: 3px 6px;
@@ -846,7 +925,7 @@
       transition: border-color 0.2s;
     }
     .cl-assignee-select:focus { border-color: var(--accent); }
-    .cl-assignee-select option { background: #252525; }
+    .cl-assignee-select option { background: var(--bg-4); }
     .cl-teams-btn {
       background: transparent;
       border: 1px solid var(--border);
@@ -863,7 +942,7 @@
 
     /* 메뉴 수정 - 담당자 탭 */
     .menu-tab.staff-tab.active { background: rgba(56,161,105,0.12); border-color: rgba(56,161,105,0.4); color: var(--green); }
-    .menu-tab.office-in-tab.active, .menu-tab.office-out-tab.active { background: rgba(126,207,228,0.12); border-color: rgba(126,207,228,0.4); color: #7ecfe4; }
+    .menu-tab.office-in-tab.active, .menu-tab.office-out-tab.active { background: rgba(126,207,228,0.12); border-color: rgba(126,207,228,0.4); color: var(--cyan); }
     .menu-tab.renewal-tab.active { background: var(--purple-dim); border-color: rgba(167,139,250,0.4); color: var(--purple); }
     .staff-item-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 
@@ -879,6 +958,14 @@
   </style>
 </head>
 <body>
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem('s9_theme');
+      if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+    } catch (e) {}
+  })();
+</script>
 
 <!-- ─── LOGIN ─── -->
 <div id="login-screen">
@@ -900,7 +987,10 @@
       <div class="top-brand">STAGE9</div>
       <div class="top-title">입퇴주 관리 시스템</div>
     </div>
-    <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="theme-toggle-btn" id="theme-toggle-btn" type="button" onclick="toggleTheme()">☀️ 주간모드</button>
+      <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+    </div>
   </div>
 
   <div class="dashboard">
@@ -1003,6 +1093,10 @@
       <div class="form-group">
         <label class="form-label">만료월 *</label>
         <input type="month" class="form-input" id="f-expiry-month">
+      </div>
+      <div class="form-group">
+        <label class="form-label">컨택일자</label>
+        <input type="date" class="form-input" id="f-contact-date">
       </div>
     </div>
     <div class="form-row">
@@ -1554,6 +1648,23 @@
     document.getElementById('pw-input').value = '';
     document.getElementById('pw-error').style.display = 'none';
   }
+
+  /* ─── 다크/주간모드 토글 ─── */
+  function currentTheme() {
+    return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+  }
+  function syncThemeButton() {
+    const btn = document.getElementById('theme-toggle-btn');
+    if (!btn) return;
+    btn.textContent = currentTheme() === 'light' ? '🌙 다크모드' : '☀️ 주간모드';
+  }
+  function toggleTheme() {
+    const next = currentTheme() === 'light' ? 'dark' : 'light';
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('s9_theme', next); } catch {}
+    syncThemeButton();
+  }
+  syncThemeButton();
   ['email-input','pw-input'].forEach(id => {
     document.getElementById(id).addEventListener('keydown', e => {
       if (e.key==='Enter') doLogin();
@@ -1742,11 +1853,14 @@
     };
     const th = THEME[type] || THEME.in;
     const headBg = th.headBg, headColor = th.headColor;
-    const heads = `<th style="background:${headBg};color:${headColor};">기업명</th>${stages.map(s=>`<th style="background:${headBg};color:${headColor};">${escHtml(s.label)}</th>`).join('')}<th style="background:${headBg};color:${headColor};">메모</th><th style="background:${headBg};"></th>`;
+    const isRenewal = type === 'renewal';
+    const contactHead = isRenewal ? `<th style="background:${headBg};color:${headColor};">컨택일자</th>` : '';
+    const heads = `<th style="background:${headBg};color:${headColor};">기업명</th>${stages.map(s=>`<th style="background:${headBg};color:${headColor};">${escHtml(s.label)}</th>`).join('')}${contactHead}<th style="background:${headBg};color:${headColor};">메모</th><th style="background:${headBg};"></th>`;
+    const colCount = stages.length + (isRenewal ? 4 : 3);
     if (!list.length) return `
       <div class="table-wrap"><table class="company-table">
         <thead><tr>${heads}</tr></thead>
-        <tbody><tr class="empty-row"><td colspan="${stages.length+3}">등록된 기업이 없습니다</td></tr></tbody>
+        <tbody><tr class="empty-row"><td colspan="${colCount}">등록된 기업이 없습니다</td></tr></tbody>
       </table></div>`;
 
     const staff = getStaff();
@@ -1776,9 +1890,15 @@
       const convertedBadge = c.sourceRenewalId ? `<span class="renewal-badge">🔁 재계약 전환</span>` : '';
       const monthTagBadge = showMonthTag ? `<span class="month-tag-badge">${formatMonth(c.month)}</span>` : '';
       const allDoneCompany = isAllDone(c);
+      const contactCol = isRenewal ? (() => {
+        const parts = c.contactDate ? c.contactDate.split('-') : null;
+        const text = parts ? `${parts[0]}.${parseInt(parts[1])}.${parseInt(parts[2])}` : '—';
+        return `<td><div class="memo-text">${text}</div></td>`;
+      })() : '';
       return `<tr>
         <td class="company-name" style="${allDoneCompany?'color:var(--text-dim);':''}">${n}${r?`<span class="room-badge">${r}</span>`:''}${omBadge}${expiryBadge}${convertedBadge}${monthTagBadge}${aBadge}</td>
         ${stageCols}
+        ${contactCol}
         <td><div class="memo-text" title="${memo}">${memo||'—'}</div></td>
         <td><div class="action-btns">
           <button class="action-btn" onclick="openEdit('${c.id}')">수정</button>
@@ -2246,6 +2366,7 @@
     document.getElementById('f-type').value=type;
     document.getElementById('f-month').value=month;
     document.getElementById('f-expiry-month').value='';
+    document.getElementById('f-contact-date').value='';
     document.getElementById('f-memo').value='';
     populateAssigneeSelect('');
     toggleExpiryField();
@@ -2262,6 +2383,7 @@
     document.getElementById('f-type').value=c.isOfficeMove ? 'office_'+c.type : c.type;
     document.getElementById('f-month').value=c.month;
     document.getElementById('f-expiry-month').value=c.expiryMonth||'';
+    document.getElementById('f-contact-date').value=c.contactDate||'';
     document.getElementById('f-memo').value=c.memo||'';
     populateAssigneeSelect(c.assigneeId||'');
     toggleExpiryField();
@@ -2278,6 +2400,7 @@
     const type        = isOfficeMove ? typeVal.replace('office_', '') : typeVal;
     const month       = document.getElementById('f-month').value;
     const expiryMonth = document.getElementById('f-expiry-month').value;
+    const contactDate = document.getElementById('f-contact-date').value;
     const memo        = document.getElementById('f-memo').value.trim();
     const assigneeId  = document.getElementById('f-assignee').value;
     if (!name)  { alert('기업명을 입력해 주세요.'); return; }
@@ -2285,7 +2408,7 @@
     if (type==='renewal' && !expiryMonth) { alert('만료월을 선택해 주세요.'); return; }
     const data=getData();
     const base = {name,room,type,month,memo,assigneeId,isOfficeMove};
-    if (type==='renewal') base.expiryMonth = expiryMonth;
+    if (type==='renewal') { base.expiryMonth = expiryMonth; base.contactDate = contactDate; }
     if (editingId) {
       const c=data.find(x=>x.id===editingId);
       if (c) {
@@ -2315,7 +2438,7 @@
     if (!companies.length) { alert('내보낼 데이터가 없습니다.'); return; }
 
     const rows = [];
-    rows.push(['기업명', '호실', '구분', '예정월', '단계1', '단계2', '단계3', '단계4', '단계5', '전체진행률', '메모']);
+    rows.push(['기업명', '호실', '구분', '예정월', '단계1', '단계2', '단계3', '단계4', '단계5', '전체진행률', '메모', '컨택일자']);
 
     companies.forEach(c => {
       const type      = c.type||'in';
@@ -2346,6 +2469,7 @@
         ...stageCols,
         pct,
         c.memo||'',
+        c.contactDate||'',
       ]);
     });
 
